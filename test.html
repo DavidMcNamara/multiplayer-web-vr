@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <a-scene>
+    <a-assets>
+      <video id="webcam" playsinline crossorigin="anonymous"></video>
+    </a-assets>
+    <a-box
+      src="#webcam"
+      position="11  8 0"
+      rotation="0 90 0"
+      width="15"
+      height="10"
+    ></a-box>
+  </a-scene>
+
+  <!-- Start the webcam stream and attach it to the video element -->
+  <script>
+    // You can also set which camera to use (front/back/etc)
+    // @SEE https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+    navigator.mediaDevices
+      .getUserMedia({ audio: true, video: true })
+      .then(stream => {
+        let $video = document.querySelector("video");
+        $video.srcObject = stream;
+        $video.onloadedmetadata = () => {
+          $video.play();
+        };
+      });
+  </script>
+</html>
