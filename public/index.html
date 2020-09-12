@@ -8,18 +8,6 @@
   </head>
 
   <script>
-    socket.emit("joinRoom", { user: socket.id, room: whereami });
-    // recieve messages from the server
-    socket.on("message", data => {
-      // DEBUG
-      console.log(data);
-      // process this data
-    });
-
-    socket.on("removeUser", data => {
-      document.getElementById(data).remove();
-    });
-
     socket.on("movePlayers", data => {
       if (!document.getElementById(data.user)) {
         var box = document.createElement("a-box");
@@ -32,10 +20,12 @@
         box.setAttribute("id", data.user);
         document.getElementById("otherPlayers").appendChild(box);
         if (!document.getElementById(data.user + "++audio") && data.user != socket.id) {
-          //var audio = document.createElement("audio");
           var audio = document.createElement("audio");
           audio.id = data.user + "++audio";
           document.getElementById(data.user).appendChild(audio);
+          var sound = document.createElement("a-sound");
+          sound.id = data.user + "++sound";
+          document.getElementById(data.user).appendChild(sound);
         }
       }
       // update the position
@@ -66,12 +56,7 @@
       // });
     });
 
-    // Update the hud
-    AFRAME.registerComponent("whoami", {
-      tick: function() {
-        AFRAME.utils.entity.setComponentProperty(this.el, "value", whoami);
-      }
-    });
+    
 
     var lastPos;
     var lastRot;

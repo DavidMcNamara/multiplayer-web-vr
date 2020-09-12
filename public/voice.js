@@ -53,16 +53,23 @@ socket.on("audio-feed", data => {
   var audio = document.getElementById(data.audio.id + "++audio");
   if (audio) {
     audio.src = data.audio.dataURL;
-    //AFRAME.utils.entity.setComponentProperty(audio, "src", data.audio.dataURL);
-    
-    console.log(audio);
-    //audio.play()
+    //console.log(audio);
     audio.oncanplaythrough = () => {
-      audio.play();
+      var sound = document.getElementById(data.audio.id+"++sound");
+      if (sound) {
+        console.log("found the a-sound");
+        AFRAME.utils.entity.setComponentProperty(
+          sound,
+          "src",
+          data.audio.dataURL
+        ); 
+        sound.addEventListener("sound-loaded", _ =>{
+          sound.components.sound.playSound();
+        });
+        sound.addEventListener("sound-ended", _ => {
+          sound.components.sound.stopSound();
+        });
+      }
     };
-    audio.addEventListener("sound-loaded", function(evt){
-      
-      audio.play();
-    });
   }
 });
