@@ -1,0 +1,246 @@
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    <script src="./client.js"></script>
+    <script src="./voice.js"></script>
+  </head>
+
+  <script>
+    socket.emit("joinRoom", { user: socket.id, room: whereami });
+    // recieve messages from the server
+    socket.on("message", data => {
+      // DEBUG
+      console.log(data);
+      // process this data
+    });
+
+    socket.on("removeUser", data => {
+      document.getElementById(data).remove();
+    });
+
+    socket.on("movePlayers", data => {
+      if (!document.getElementById(data.user)) {
+        var box = document.createElement("a-box");
+        if (enableVideo) {
+          document
+            .querySelector("video")
+            .setAttribute("id", "webcam" + data.user);
+          box.setAttribute("src", "#webcam" + data.user);
+        }
+        box.setAttribute("id", data.user);
+        document.getElementById("otherPlayers").appendChild(box);
+        if (!document.getElementById(data.user + "++audio")) {
+          console.log(2);
+          var audio = document.createElement("audio");
+          audio.id = data.user + "++audio";
+          document.getElementById(data.user).appendChild(audio);
+        }
+      }
+      // update the position
+      AFRAME.utils.entity.setComponentProperty(
+        document.getElementById(data.user),
+        "position",
+        { x: data.position.x, y: data.position.y, z: data.position.z }
+      );
+
+      // update rotation
+      AFRAME.utils.entity.setComponentProperty(
+        document.getElementById(data.user),
+        "rotation",
+        { x: data.rotation.x, y: data.rotation.y, z: data.rotation.z }
+      );
+    });
+
+    // recieve from the server whoami and whereami values
+    socket.on("info", data => {
+      console.log(data);
+      whoami = data.who;
+      whereami = data.where;
+      setupVoice({
+        video: false,
+        audio: true,
+        id: socket.id + "++audio",
+        container: socket.id
+      });
+      // update the hud to who whoami and whereami
+    });
+
+    // Update the hud
+    AFRAME.registerComponent("whoami", {
+      tick: function() {
+        AFRAME.utils.entity.setComponentProperty(this.el, "value", whoami);
+      }
+    });
+
+    var lastPos;
+    var lastRot;
+
+    AFRAME.registerComponent("simulate", {
+      init: function() {
+        // custom tick speed
+        this.tick = AFRAME.utils.throttleTick(this.tick, 10, this);
+      },
+      tick: function() {
+        if (
+          lastPos != this.el.object3D.getWorldPosition(new THREE.Vector3()) ||
+          lastRot !=
+            AFRAME.utils.entity.getComponentProperty(this.el, "rotation")
+        ) {
+          socket.emit("update", {
+            position: this.el.object3D.getWorldPosition(new THREE.Vector3()),
+            rotation: AFRAME.utils.entity.getComponentProperty(
+              this.el,
+              "rotation"
+            ),
+            user: whoami
+            //cam: webCamFeed
+          });
+        }
+
+        lastPos = this.el.object3D.getWorldPosition(new THREE.Vector3());
+        lastRot = AFRAME.utils.entity.getComponentProperty(this.el, "rotation");
+      }
+    });
+
+    if (enableVideo) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: false, video: true })
+        .then(stream => {
+          socket.emit("stream-media", stream);
+          let $video = document.querySelector("video");
+          $video.srcObject = stream;
+          $video.onloadedmetadata = () => {
+            $video.play();
+          };
+        });
+    }
+    // play area component
+    AFRAME.registerComponent("play-area", {
+      schema: {
+        size: { type: "number", default: 10 }
+      },
+      init: function() {
+        var parent = this.el;
+        var size = this.data.size;
+        // reposition the user to the center of the play area
+        var user = document.getElementById("user");
+        // change the position of the user to the start of the maze
+        AFRAME.utils.entity.setComponentProperty(user, "position", {
+          //x: size / 2,
+          //z: -(size / 2)
+          x: 11,
+          y: 0,
+          z: 0
+        });
+
+        // create play area
+        for (var i = 0; i < size; i++) {
+          for (var j = 0; j < size; j++) {
+            var tile = document.createElement("a-plane");
+            if (i % 2 == 0 && j % 2 == 0) tile.setAttribute("color", "#a1a1a1");
+            else if (i % 2 != 0 && j % 2 != 0)
+              tile.setAttribute("color", "#a1a1a1");
+            else tile.setAttribute("color", "#666666");
+            tile.setAttribute("position", i + " " + j + " 0");
+            tile.setAttribute("teleport", "");
+            tile.setAttribute("class", "clickable");
+            tile.setAttribute("highlight", "");
+            // maybe add a texture to this to suit the scene
+            //AFRAME.utils.entity.setComponentProperty(tile, "material", {src: "#sky"});
+            parent.appendChild(tile);
+          }
+          parent.appendChild(tile);
+        }
+      }
+    });
+
+    // teleport
+    AFRAME.registerComponent("teleport", {
+      init: function() {
+        // when the user clicks on this
+        this.el.addEventListener("click", function() {
+          // make reference to the user
+          var user = document.getElementById("user");
+          // get the position of the user
+          var pos = AFRAME.utils.entity.getComponentProperty(user, "position");
+          // get the position of this tiled
+          var tile = this.getAttribute("position");
+          // set the user position x y z to the appropiate tile x y z
+          pos.x = tile.x;
+          pos.y = tile.z;
+          pos.z = -tile.y;
+          // set the new user position
+          AFRAME.utils.entity.setComponentProperty(user, "position", {
+            x: pos.x,
+            y: pos.y,
+            z: pos.z
+          });
+        });
+      }
+    });
+  </script>
+  <body>
+    <a-scene>
+      <a-assets>
+        <img
+          id="sky"
+          crossorigin="anonymous"
+          src="https://cdn.glitch.com/6371daf2-253b-4584-912d-cdf772194763%2Fgreen-hills-over-town.jpg?v=1594198049857"
+        />
+        <video id="webcam" playsinline crossorigin="anonymous"></video>
+      </a-assets>
+
+      <!--       <a-box
+        src="#webcam"
+        position="11  8 0"
+        rotation="0 90 0"
+        width="15"
+        height="10"
+      ></a-box> -->
+
+      <!-- User Rig for Tile Movement -->
+      <a-entity id="user">
+        <a-entity geometry="" scale="0.3 1 0.1"></a-entity>
+        <a-camera id="camera" wasd-controls-enabled="true" simulate>
+          <a-cursor
+            id="caster"
+            fuse="true"
+            fuse-timeout="1000"
+            position="0 0 -0.01"
+            geometry="radiusOuter:0.0003;
+                    radiusInner: 0.0002;
+                    segmentsTheta: 6"
+            material="color: black;
+                     opacity: 0.5"
+            raycaster="objects: .clickable; far: 4; interval: 0; showLine: true"
+            animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1000; from: 1 1 1; to: 0.5 0.5 0.5"
+            animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 1000; to: 1 1 1"
+          >
+            <a-text
+              id="hud"
+              scale="0.25 0.25 0.25"
+              position="0 0 -1"
+              align="center"
+              whoami
+            ></a-text>
+          </a-cursor>
+        </a-camera>
+      </a-entity>
+
+      <!-- floor -->
+      <a-entity
+        id="momentGrid"
+        position="0 0 0"
+        rotation="-90 0 0"
+        play-area="size: 25"
+      >
+      </a-entity>
+
+      <!-- sky -->
+      <a-sky src="#sky"></a-sky>
+      <a-entity id="otherPlayers"></a-entity>
+    </a-scene>
+  </body>
+</html>
