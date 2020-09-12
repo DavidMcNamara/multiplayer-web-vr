@@ -31,8 +31,8 @@
         }
         box.setAttribute("id", data.user);
         document.getElementById("otherPlayers").appendChild(box);
-        if (!document.getElementById(data.user + "++audio")) {
-          console.log(2);
+        if (!document.getElementById(data.user + "++audio") && data.user != socket.id) {
+          //var audio = document.createElement("audio");
           var audio = document.createElement("audio");
           audio.id = data.user + "++audio";
           document.getElementById(data.user).appendChild(audio);
@@ -58,13 +58,12 @@
       console.log(data);
       whoami = data.who;
       whereami = data.where;
-      setupVoice({
-        video: false,
-        audio: true,
-        id: socket.id + "++audio",
-        container: socket.id
-      });
-      // update the hud to who whoami and whereami
+      // setupVoice({
+      //   video: false,
+      //   audio: true,
+      //   id: socket.id + "++audio",
+      //   container: socket.id
+      // });
     });
 
     // Update the hud
@@ -116,6 +115,7 @@
           };
         });
     }
+    
     // play area component
     AFRAME.registerComponent("play-area", {
       schema: {
@@ -191,18 +191,8 @@
         />
         <video id="webcam" playsinline crossorigin="anonymous"></video>
       </a-assets>
-
-      <!--       <a-box
-        src="#webcam"
-        position="11  8 0"
-        rotation="0 90 0"
-        width="15"
-        height="10"
-      ></a-box> -->
-
       <!-- User Rig for Tile Movement -->
       <a-entity id="user">
-        <a-entity geometry="" scale="0.3 1 0.1"></a-entity>
         <a-camera id="camera" wasd-controls-enabled="true" simulate>
           <a-cursor
             id="caster"
@@ -240,6 +230,8 @@
 
       <!-- sky -->
       <a-sky src="#sky"></a-sky>
+      <!-- container that add other clients -->
+      
       <a-entity id="otherPlayers"></a-entity>
     </a-scene>
   </body>
