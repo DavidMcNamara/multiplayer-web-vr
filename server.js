@@ -1,5 +1,3 @@
-console.log("Starting Server");
-
 // use express
 const express = require("express");
 // use http
@@ -22,10 +20,12 @@ io.on("connection", socket => {
     io.to(room).emit("message", data);
   });
 
+  
+  //'#'+(Math.random() * 0xFFFFFF << 0).toString(16).padStart(6, '0')}
   // when a client is in a room
   socket.on("joinRoom", data => {
     socket.join(room);
-    socket.emit("info", { who: socket.id, where: room });
+    socket.emit("info", { who: socket.id, where: room, color: generateRandomColor()});
     socket.broadcast
       .to(room)
       .emit("message", { user: socket.id, connected: true });
@@ -38,7 +38,7 @@ io.on("connection", socket => {
 
   // send a disconnection message when a client leaves
   socket.on("disconnect", data => {
-    console.log(socket.id + " DIsconnected");
+    console.log(socket.id + " Disconnected");
     io.emit("message", { user: socket.id, disconnected: true });
     io.emit("removeUser", socket.id);
   });
@@ -59,3 +59,11 @@ const PORT = 3000 || process.env.PORT;
 
 app.use(express.static(__dirname + "/public"));
 server.listen(PORT, _ => console.log("Listening on port " + PORT));
+
+function generateRandomColor(){
+  var letters = '0123456789ABCDEF';
+  var color = "#";
+  for (var i = 0; i < 6; i++)
+    color += letters[Math.floor(Math.random() * 16)];
+  return color;
+}
