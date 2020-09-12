@@ -6,6 +6,8 @@ const socket = io();
 var whoami;
 // store what room this client is in
 var whereami;
+// store what hex value this client is
+var colorami;
 //var webCamFeed;
 
 // video enabled

@@ -8,8 +8,8 @@
   </head>
 
   <script>
-    socket.on("movePlayers", data => {
-      if (!document.getElementById(data.user)) {
+    function setUpUser(data) {
+      if (!document.getElementById(data.user) && data.user !== undefined) {
         var box = document.createElement("a-box");
         if (enableVideo) {
           document
@@ -18,8 +18,14 @@
           box.setAttribute("src", "#webcam" + data.user);
         }
         box.setAttribute("id", data.user);
+        AFRAME.utils.entity.setComponentProperty(box, "material", {
+          color: data.color
+        });
         document.getElementById("otherPlayers").appendChild(box);
-        if (!document.getElementById(data.user + "++audio") && data.user != socket.id) {
+        if (
+          !document.getElementById(data.user + "++audio") &&
+          data.user != socket.id
+        ) {
           var audio = document.createElement("audio");
           audio.id = data.user + "++audio";
           document.getElementById(data.user).appendChild(audio);
@@ -28,13 +34,16 @@
           document.getElementById(data.user).appendChild(sound);
         }
       }
+    }
+    
+    socket.on("movePlayers", data => {
+      setUpUser(data);
       // update the position
       AFRAME.utils.entity.setComponentProperty(
         document.getElementById(data.user),
         "position",
         { x: data.position.x, y: data.position.y, z: data.position.z }
       );
-
       // update rotation
       AFRAME.utils.entity.setComponentProperty(
         document.getElementById(data.user),
@@ -43,11 +52,12 @@
       );
     });
 
-    // recieve from the server whoami and whereami values
+    // recieve from the server whoami and whereami and colorami values
     socket.on("info", data => {
       console.log(data);
       whoami = data.who;
       whereami = data.where;
+      colorami = data.color;
       // setupVoice({
       //   video: false,
       //   audio: true,
@@ -55,8 +65,6 @@
       //   container: socket.id
       // });
     });
-
-    
 
     var lastPos;
     var lastRot;
@@ -78,7 +86,8 @@
               this.el,
               "rotation"
             ),
-            user: whoami
+            user: whoami,
+            color: colorami
             //cam: webCamFeed
           });
         }
@@ -88,19 +97,19 @@
       }
     });
 
-    if (enableVideo) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: false, video: true })
-        .then(stream => {
-          socket.emit("stream-media", stream);
-          let $video = document.querySelector("video");
-          $video.srcObject = stream;
-          $video.onloadedmetadata = () => {
-            $video.play();
-          };
-        });
-    }
-    
+    // if (enableVideo) {
+    //   navigator.mediaDevices
+    //     .getUserMedia({ audio: false, video: true })
+    //     .then(stream => {
+    //       socket.emit("stream-media", stream);
+    //       let $video = document.querySelector("video");
+    //       $video.srcObject = stream;
+    //       $video.onloadedmetadata = () => {
+    //         $video.play();
+    //       };
+    //     });
+    // }
+
     // play area component
     AFRAME.registerComponent("play-area", {
       schema: {
@@ -109,15 +118,11 @@
       init: function() {
         var parent = this.el;
         var size = this.data.size;
-        // reposition the user to the center of the play area
         var user = document.getElementById("user");
-        // change the position of the user to the start of the maze
         AFRAME.utils.entity.setComponentProperty(user, "position", {
-          //x: size / 2,
-          //z: -(size / 2)
-          x: 11,
+          x: size / 2,
           y: 0,
-          z: 0
+          z: -(size / 2)
         });
 
         // create play area
@@ -132,8 +137,6 @@
             tile.setAttribute("teleport", "");
             tile.setAttribute("class", "clickable");
             tile.setAttribute("highlight", "");
-            // maybe add a texture to this to suit the scene
-            //AFRAME.utils.entity.setComponentProperty(tile, "material", {src: "#sky"});
             parent.appendChild(tile);
           }
           parent.appendChild(tile);
@@ -153,6 +156,9 @@
           // get the position of this tiled
           var tile = this.getAttribute("position");
           // set the user position x y z to the appropiate tile x y z
+
+          // TODO simplify this redundant code
+
           pos.x = tile.x;
           pos.y = tile.z;
           pos.z = -tile.y;
@@ -174,7 +180,7 @@
           crossorigin="anonymous"
           src="https://cdn.glitch.com/6371daf2-253b-4584-912d-cdf772194763%2Fgreen-hills-over-town.jpg?v=1594198049857"
         />
-        <video id="webcam" playsinline crossorigin="anonymous"></video>
+        <!--         <video id="webcam" playsinline crossorigin="anonymous"></video> -->
       </a-assets>
       <!-- User Rig for Tile Movement -->
       <a-entity id="user">
@@ -212,11 +218,9 @@
         play-area="size: 25"
       >
       </a-entity>
-
       <!-- sky -->
       <a-sky src="#sky"></a-sky>
       <!-- container that add other clients -->
-      
       <a-entity id="otherPlayers"></a-entity>
     </a-scene>
   </body>
