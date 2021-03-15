@@ -45,32 +45,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
-// PLAY FEED
-// this will not be audiable on the senders end as their audio element will not exist
-// this audio feed will only be audiable to other clients
-// socket.on("audio-feed", data => {
-//   var audio = document.getElementById(data.audio.id + "++audio");
-//   if (audio) {
-//     audio.src = data.audio.dataURL;
-//     audio.oncanplaythrough = () => {
-//       var sound = document.getElementById(data.audio.id+"++sound");
-//       if (sound) {
-//         console.log("found the a-sound");
-//         AFRAME.utils.entity.setComponentProperty(
-//           sound,
-//           "src",
-//           data.audio.dataURL
-//         ); 
-//         sound.addEventListener("sound-loaded", _ =>{
-//           sound.components.sound.playSound();
-//         });
-//         sound.addEventListener("sound-ended", _ => {
-//           sound.components.sound.stopSound();
-//         });
-//       }
-//     };
-//   }
-// });
 
 socket.on("audio-feed", data => {
   var audio = document.getElementById(data.audio.id + "++audio");
